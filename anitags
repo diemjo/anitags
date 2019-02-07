@@ -1,0 +1,111 @@
+#!/bin/bash
+
+#No longer used
+function construct_arg() {
+    arg=""
+
+    SAVEIFS=$IFS
+    IFS=$(echo -en "\n\b")
+    for tag in $1
+    do
+        arg="$arg -animetags-=$tag -animetags+=$tag"
+    done
+    for tag in $2
+    do
+        arg="$arg -animetags-=$tag"
+    done
+    IFS=$SAVEIFS
+    echo $arg
+}
+
+function write_tags() {
+    opt_file="$1"
+    opt_tags_add_arr="$2"
+    opt_tags_remove_arr="$3"
+    for tag in "${opt_tags_add_arr[@]}"
+    do
+        exiftool -overwrite_original_in_place -animetags-="$tag" -animetags+="$tag" "$opt_file" &>/dev/null
+    done
+    for tag in "${opt_tags_remove_arr[@]}"
+    do
+        exiftool -overwrite_original_in_place -animetags-="$tag" "$opt_file" &>/dev/null
+    done
+}
+
+function usage() {
+    echo "Usage: ${0##*/} [options] file
+Image tagging script:
+
+Options:
+    -t <tag>      add tag to file
+    -r <tag>      remove tag from file
+    -l <file>     list tags from file (enabled if no tag specified)
+    -s <tag>      search directory for images with specified tag
+
+    -h            Displays this help
+" 1>&2
+    exit 1
+}
+##############################################################
+
+opt_tags_add_arr=()
+opt_tags_remove_arr=()
+
+if [ $# -eq 0 ]; then
+    usage
+fi
+
+while getopts "t:r:s:lh" o; do
+    case "$o" in
+    	t)
+            opt_tags_add_arr+=("$OPTARG")
+            opt_tag=true
+            ;;
+        r)
+            opt_tags_remove_arr+=("$OPTARG")
+            opt_tag=true
+            ;;
+        l)
+            opt_show_tags=true
+            ;;
+        s)
+            opt_search_tag="$OPTARG"
+            ;;
+        h | *)
+            usage
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ -z "$opt_search_tag" ]; then
+    opt_file="$1"
+    if [ ! -f "$opt_file" ]; then
+        echo "Error: File \"$opt_file\" does not exist"
+        usage
+    fi
+fi
+
+if [ $opt_tag ]; then
+    write_tags "$opt_file" "$opt_tags_add_arr" "$opt_tags_remove_arr"
+else
+    opt_show_tags=true
+fi
+
+if [ ! -z $opt_search_tag ]; then
+    echo searching for $opt_search_tag
+    for file in *
+    do
+        (tags=$(exiftool -animetags $file)
+        if [ ! -z "$(echo $tags | grep "$opt_search_tag")" ]; then
+            echo "$file"
+        fi) &
+    done > file_list.txt
+fi
+
+#Provisorisch
+opt_show_tags=true
+
+if [ $opt_show_tags ]; then
+    exiftool -animetags "$opt_file" | grep -oP "Anime Tags[^:]*: \K.*"
+fi
