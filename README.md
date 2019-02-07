@@ -1,2 +1,2 @@
 # anitags
-Image tagging system
+Image tagging system using exiftags
