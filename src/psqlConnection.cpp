@@ -77,6 +77,49 @@ bool db_remove_tags(config *conf) {
         printf("PSQLConnection::%s\n", e.what());
         return false;
     }
+    string remove_tag_string = "DELETE FROM tags\n"
+                               "WHERE NOT EXISTS(\n"
+                               "SELECT tag\n"
+                               "FROM pictures\n"
+                               "WHERE tags.tag=pictures.tag)";
+    db_con->prepare("remove_tag", remove_tag_string);
+    try {
+        pqxx::work w(*db_con);
+        pqxx::result r = w.exec_prepared("remove_tag");
+        w.commit();
+    }
+    catch (const std::exception &e) {
+        printf("PSQLConnection::%s\n", e.what());
+        return false;
+    }
+    return true;
+}
+
+bool db_print_tags(config *conf) {
+    for (string filename : conf->filenames) {
+        string searchstring = "SELECT tag\n"
+                              "FROM pictures\n"
+                              "WHERE filename=$1";
+
+        pqxx::work w(*db_con);
+
+        db_con->prepare("print", searchstring);
+        pqxx::result r = w.exec_prepared("print", filename);
+        w.commit();
+
+        if (conf->filenames.size()!=1)
+            printf("%s:\n", filename.c_str());
+        bool has_tag = false;
+        for (pqxx::result::const_iterator c = r.begin(); c != r.end(); c++) {
+            if (c == r.begin())
+                printf("%s", c[0].as<string>().c_str());
+            else
+                printf(", %s", c[0].as<string>().c_str());
+            has_tag=true;
+        }
+        if (has_tag)
+            printf("\n");
+    }
     return true;
 }
 

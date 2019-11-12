@@ -10,11 +10,12 @@ void processArgs(int argc, char* argv[], config* conf) {
             {"add-tag", required_argument, 0, 't'},
             {"remove-tag", required_argument, 0, 'r'},
             {"filter-tag", required_argument, 0, 'f'},
+            {"exif", required_argument, 0, 'e'},
             {"help", required_argument, 0, 'h'}
     };
     int option_index = 0;
     conf->needsFile=true;
-    while ((c = getopt_long(argc, argv, "t:r:f:hl", options, &option_index)) != -1) {
+    while ((c = getopt_long(argc, argv, "t:r:f:ehl", options, &option_index)) != -1) {
         switch (c) {
             case 0:
                 break;
@@ -35,6 +36,9 @@ void processArgs(int argc, char* argv[], config* conf) {
                 conf->searchByTags=true;
                 conf->needsDir=true;
                 conf->needsFile=false;
+                break;
+            case 'e':
+                conf->modifyExif=true;
                 break;
             case 'l':
                 break;

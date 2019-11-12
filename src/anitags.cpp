@@ -34,16 +34,19 @@ int main(int argc, char* argv[]) {
 
     if (conf->tags_to_remove.size() > 0) {
         db_remove_tags(conf);
-        remove_tags(conf, et);
+        if (conf->modifyExif)
+            remove_tags(conf, et);
     }
 
     if (conf->tags_to_add.size() > 0) {
         db_add_tags(conf);
-        add_tags(conf, et);
+        if (conf->modifyExif)
+            add_tags(conf, et);
     }
 
     if (conf->modifyTags) {
-        write_tags(conf, et, argv[0]);
+        if (conf->modifyExif)
+            write_tags(conf, et, argv[0]);
     }
     else if (conf->searchByTags) {
         vector<string> filenames = db_search_for_tags(conf);
@@ -53,7 +56,8 @@ int main(int argc, char* argv[]) {
         //search_by_tags(conf, et, argv[0]);
     }
     else {
-        print_tags(conf, et, argv[0]);
+        db_print_tags(conf);
+        //print_tags(conf, et, argv[0]);
     }
 
     delete et;

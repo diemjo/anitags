@@ -20,6 +20,7 @@ typedef struct config_struct {
     bool needsFile;
     bool needsDir;
     bool modifyTags;
+    bool modifyExif;
     bool searchByTags;
 
 } config;
