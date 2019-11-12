@@ -1,22 +1,27 @@
 CPP = g++
-OPT = -O3
+OPT = -O3 -std=c++17
 INC = -I inc
 
-OBJ = obj/ExifTool.o obj/ExifToolPipe.o obj/TagInfo.o
-HDR = inc/ExifTool.h inc/ExifToolPipe.h inc/TagInfo.h
+OBJEXIF = obj/ExifTool.o obj/ExifToolPipe.o obj/TagInfo.o
+OBJ = obj/command_line.o obj/psqlConnection.o
+HDREXIF = inc/ExifTool.h inc/ExifToolPipe.h inc/TagInfo.h
+HDR = inc/command_line.h inc/config.h inc/error_codes.h inc/psqlConnection.h
 
 all: anitags
 
 debug: DEBUG = -DDEBUG -g
 debug: anitags
 
-anitags: obj/anitags.o $(OBJ)
-	$(CPP) $(DEBUG) $(OPT) -o anitags obj/anitags.o $(OBJ)
+anitags: obj/anitags.o $(OBJ) $(OBJEXIF)
+	$(CPP) $(DEBUG) $(OPT) -o anitags obj/anitags.o $(OBJ) $(OBJEXIF) -lstdc++fs -l pqxx
 
-obj/anitags.o: src/* $(HDR)
-	$(CPP) $(DEBUG) $(OPT) $(INC) -o $@ -c src/anitags.cpp
+obj/anitags.o: src/anitags.cpp $(HDR) $(HDREXIF)
+	$(CPP) $(DEBUG) $(OPT) $(INC) -o $@ -c src/anitags.cpp -lstdc++fs -l pqxx
 
-obj/%.o: lib/%.cpp $(HDR)
+obj/%.o: lib/%.cpp $(HDREXIF)
+	$(CPP) $(OPT) $(INC) -o $@ -c $<
+
+obj/%.o: src/%.cpp $(HDR)
 	$(CPP) $(OPT) $(INC) -o $@ -c $<
 
 clean:

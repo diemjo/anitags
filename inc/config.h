@@ -15,8 +15,10 @@ typedef struct config_struct {
     vector<string> tags_to_add;
     vector<string> tags_to_remove;
     vector<string> tags_to_search;
-    string filename;
+    vector<string> filenames;
+    vector<string> dirnames;
     bool needsFile;
+    bool needsDir;
     bool modifyTags;
     bool searchByTags;
 
