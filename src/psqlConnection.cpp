@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <error_codes.h>
 #include <vector>
+#include <libgen.h>
 
 #include "../inc/psqlConnection.h"
 
@@ -45,9 +46,10 @@ bool db_add_tags(config *conf) {
             w.commit();
         }
         for (string file : conf->filenames) {
+            string filename = file.substr(file.find_last_of("/")+1);
             for (string tag : conf->tags_to_add) {
                 pqxx::work w(*db_con);
-                pqxx::result r = w.exec_prepared("insert", file, tag.c_str());
+                pqxx::result r = w.exec_prepared("insert", filename, tag.c_str());
                 w.commit();
             }
         }
@@ -66,9 +68,10 @@ bool db_remove_tags(config *conf) {
     db_con->prepare("remove", remove_string);
     try {
         for (string file : conf->filenames) {
+            string filename = file.substr(file.find_last_of("/")+1);
             for (string tag : conf->tags_to_remove) {
                 pqxx::work w(*db_con);
-                pqxx::result r = w.exec_prepared("remove", file, tag.c_str());
+                pqxx::result r = w.exec_prepared("remove", filename, tag.c_str());
                 w.commit();
             }
         }
@@ -95,8 +98,10 @@ bool db_remove_tags(config *conf) {
     return true;
 }
 
-bool db_print_tags(config *conf) {
-    for (string filename : conf->filenames) {
+vector<pair<string, vector<string>>> db_get_tags(config *conf) {
+    vector<pair<string, vector<string>>> tag_list;
+    for (string file : conf->filenames) {
+        string filename = file.substr(file.find_last_of("/")+1);
         string searchstring = "SELECT tag\n"
                               "FROM pictures\n"
                               "WHERE filename=$1";
@@ -107,18 +112,26 @@ bool db_print_tags(config *conf) {
         pqxx::result r = w.exec_prepared("print", filename);
         w.commit();
 
-        if (conf->filenames.size()!=1)
-            printf("%s:\n", filename.c_str());
-        bool has_tag = false;
+        vector<string> tags;
         for (pqxx::result::const_iterator c = r.begin(); c != r.end(); c++) {
-            if (c == r.begin())
-                printf("%s", c[0].as<string>().c_str());
-            else
-                printf(", %s", c[0].as<string>().c_str());
-            has_tag=true;
+            tags.push_back(c[0].as<string>());
         }
-        if (has_tag)
-            printf("\n");
+        tag_list.push_back(pair(file, tags));
+    }
+    return tag_list;
+}
+
+bool db_list_tags(config *conf) {
+    string tag_string = "SELECT tag\n"
+                        "FROM tags\n";
+    pqxx::work w(*db_con);
+
+    db_con->prepare("list_tags", tag_string);
+    pqxx::result r = w.exec_prepared("list_tags");
+    w.commit();
+
+    for (pqxx::result::const_iterator c = r.begin(); c != r.end(); c++) {
+        printf("%s\n", c[0].as<string>().c_str());
     }
     return true;
 }

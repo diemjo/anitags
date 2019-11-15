@@ -10,8 +10,9 @@ void processArgs(int argc, char* argv[], config* conf) {
             {"add-tag", required_argument, 0, 't'},
             {"remove-tag", required_argument, 0, 'r'},
             {"filter-tag", required_argument, 0, 'f'},
-            {"exif", required_argument, 0, 'e'},
-            {"help", required_argument, 0, 'h'}
+            {"exif", no_argument, 0, 'e'},
+            {"help", no_argument, 0, 'h'},
+            {"list-tags", no_argument, 0, 'l'}
     };
     int option_index = 0;
     conf->needsFile=true;
@@ -21,14 +22,10 @@ void processArgs(int argc, char* argv[], config* conf) {
                 break;
             case 't':
                 conf->tags_to_add.push_back(optarg);
-                conf->needsFile=true;
-                conf->needsDir=false;
                 conf->modifyTags=true;
                 break;
             case 'r':
                 conf->tags_to_remove.push_back(optarg);
-                conf->needsFile=true;
-                conf->needsDir=false;
                 conf->modifyTags=true;
                 break;
             case 'f':
@@ -41,6 +38,8 @@ void processArgs(int argc, char* argv[], config* conf) {
                 conf->modifyExif=true;
                 break;
             case 'l':
+                conf->needsFile=false;
+                conf->listTags=true;
                 break;
             case 'h':
                 printUsage(argc, argv);
@@ -113,7 +112,17 @@ void processArgs(int argc, char* argv[], config* conf) {
     if ((conf->tags_to_search.size()) > 0 && conf->modifyTags) {
         printf("Error: cannot use option '-s' combined with option '-t' or '-r'");
         printf("Try '%s -h' for more information\n", argv[0]);
-        exit(ERROR_OPTION_S_WITH_T_R);
+        exit(ERROR_INVALID_OPTION_COMBINATION);
+    }
+    if ((conf->needsFile || conf->needsDir) && conf->listTags) {
+        printf("Error: cannot use option '-t', '-r' or '-f' combined with option '-l'");
+        printf("Try '%s -h' for more information\n", argv[0]);
+        exit(ERROR_INVALID_OPTION_COMBINATION);
+    }
+    if (conf->needsFile && conf->needsDir) {
+        printf("Error: cannot use option '-t' or '-r'combined with option '-f'");
+        printf("Try '%s -h' for more information\n", argv[0]);
+        exit(ERROR_INVALID_OPTION_COMBINATION);
     }
     sort(conf->tags_to_add.begin(), conf->tags_to_add.end());
     sort(conf->tags_to_remove.begin(), conf->tags_to_remove.end());
@@ -128,10 +137,11 @@ void printUsage(int argc, char* argv[]) {
     printf("Options:\n");
     printf("    -t, --add-tag TAG          Add tag to images (requires file argument)\n");
     printf("    -r, --remove-tag TAG       Remove tag from images (requires file argument)\n");
+    printf("    -e, --exif                 Additionally write tags directly to the Exif data section\n");
     /*printf("    -a TAGS                  Add artist to image (requires file argument)\n");
     printf("    -n TAGS                    Remove artist from image (requires file argument)\n");
     printf("    -c TAGS                    Add character to image (requires file argument)\n");
     printf("    -e TAGS                    Remove character from image (requires file argument)\n");*/
-    printf("    -l, --list                 List tags of images (requires file argument). default on.\n");
-    printf("    -f, --filter-tag TAG       Filter directories for images matching the tags\n");
+    printf("    -l, --list-tags            List tags in DB.\n");
+    printf("    -f, --filter-tag TAG       Filter directories for images matching the tags (required directory argument\n");
 }

@@ -49,18 +49,21 @@ int main(int argc, char* argv[]) {
             write_tags(conf, et, argv[0]);
     }
     else if (conf->searchByTags) {
-        vector<string> filenames = db_search_for_tags(conf);
+        /*vector<string> filenames = db_search_for_tags(conf);
         for (string filename : filenames) {
             printf("%s\n", filename.c_str());
-        }
-        //search_by_tags(conf, et, argv[0]);
+        }*/
+        search_by_tags(conf, et, argv[0]);
+    }
+    else if (conf->listTags) {
+        db_list_tags(conf);
     }
     else {
-        db_print_tags(conf);
-        //print_tags(conf, et, argv[0]);
+        print_tags(conf, et, argv[0]);
     }
 
     delete et;
+    free(conf);
 
     return SUCCESS;
 }
@@ -79,7 +82,27 @@ void add_tags(config *conf, ExifTool *et) {
 }
 
 void search_by_tags(config *conf, ExifTool *et, char* argv0) {
+    vector<string> filenames = db_search_for_tags(conf);
+    sort(filenames.begin(), filenames.end());
+    vector<string> suffixes = {".png", ".PNG", ".jpg", ".JPG", ".JPEG", ".jpeg"};
     for (string dirname : conf->dirnames) {
+        for (const auto &entry : std::filesystem::recursive_directory_iterator(dirname)) {
+            string file = entry.path();
+            int suffix_pos = file.find_last_of(".");
+            if (suffix_pos==string::npos)
+                continue;
+            if (find(suffixes.begin(), suffixes.end(), file.substr(suffix_pos))!=suffixes.end()) {
+                conf->filenames.push_back(entry.path());
+            }
+        }
+    }
+    for (string file : conf->filenames) {
+        //printf("CHEKCING FILE: %s", file.c_str());
+        if (binary_search(filenames.begin(), filenames.end(), file.substr(file.find_last_of("/")+1))) {
+            printf("%s\n", file.c_str());
+        }
+    }
+    /*for (string dirname : conf->dirnames) {
         for (const auto &entry : std::filesystem::directory_iterator(dirname)) {
             conf->filenames.push_back(entry.path());
         }
@@ -92,7 +115,7 @@ void search_by_tags(config *conf, ExifTool *et, char* argv0) {
         }
         //print_tags(conf, et, argv0);
         conf->filenames.clear();
-    }
+    }*/
 }
 
 void write_tags(config *conf, ExifTool *et, char* argv0) {
@@ -108,7 +131,20 @@ void write_tags(config *conf, ExifTool *et, char* argv0) {
 }
 
 void print_tags(config *conf, ExifTool *et, char* argv0) {
-    for (string filename : conf->filenames) {
+    vector<pair<string, vector<string>>> tag_list = db_get_tags(conf);
+    for (pair<string, vector<string>> p : tag_list) {
+        if (tag_list.size()>1)
+            printf("%s:\n", p.first.c_str());
+        for (string tag : p.second) {
+            if (tag==p.second[0])
+                printf("%s", tag.c_str());
+            else
+                printf(", %s", tag.c_str());
+        }
+        if (p.second.size()>0)
+            printf("\n");
+    }
+    /*for (string filename : conf->filenames) {
         vector<string> tags = get_tags(filename, et, argv0);
         if (tags.size()>0) {
             printf("%s", tags[0].c_str());
@@ -117,7 +153,7 @@ void print_tags(config *conf, ExifTool *et, char* argv0) {
             }
             printf("\n");
         }
-    }
+    }*/
 }
 
 vector<string> get_tags(string filepath, ExifTool *et, char* argv0) {
