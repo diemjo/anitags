@@ -14,4 +14,4 @@ vector<pair<string, vector<string>>> db_get_tags(config *conf);
 bool db_list_tags(config *conf);
 pqxx::prepare::invocation& prep_dynamic(vector<string> data, pqxx::prepare::invocation& inv);
 
-#endif //ANITAGS_PSQLCONNECTION_HPP
+#endif //ANITAGS_PSQLCONNECTION_H

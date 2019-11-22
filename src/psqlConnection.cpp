@@ -39,25 +39,31 @@ bool db_add_tags(config *conf) {
                            "DO NOTHING";
     db_con->prepare("insert_tag", insert_tag_string);
     db_con->prepare("insert", insert_string);
-    try {
-        for (string tag : conf->tags_to_add) {
+
+    for (string tag : conf->tags_to_add) {
+        try {
             pqxx::work w(*db_con);
             pqxx::result r = w.exec_prepared("insert_tag", tag.c_str());
             w.commit();
         }
-        for (string file : conf->filenames) {
-            string filename = file.substr(file.find_last_of("/")+1);
-            for (string tag : conf->tags_to_add) {
+        catch (const std::exception &e) {
+            printf("PSQLConnection::%s\n", e.what());
+        }
+    }
+    for (string file : conf->filenames) {
+        string filename = file.substr(file.find_last_of("/")+1);
+        for (string tag : conf->tags_to_add) {
+            try {
                 pqxx::work w(*db_con);
                 pqxx::result r = w.exec_prepared("insert", filename, tag.c_str());
                 w.commit();
             }
+            catch (const std::exception &e) {
+                printf("PSQLConnection::%s\n", e.what());
+            }
         }
     }
-    catch (const std::exception &e) {
-        printf("PSQLConnection::%s\n", e.what());
-        return false;
-    }
+
     return true;
 }
 
@@ -66,20 +72,21 @@ bool db_remove_tags(config *conf) {
                            "WHERE filename=$1\n"
                            "AND tag=$2";
     db_con->prepare("remove", remove_string);
-    try {
-        for (string file : conf->filenames) {
-            string filename = file.substr(file.find_last_of("/")+1);
-            for (string tag : conf->tags_to_remove) {
+
+    for (string file : conf->filenames) {
+        string filename = file.substr(file.find_last_of("/")+1);
+        for (string tag : conf->tags_to_remove) {
+            try {
                 pqxx::work w(*db_con);
                 pqxx::result r = w.exec_prepared("remove", filename, tag.c_str());
                 w.commit();
             }
+            catch (const std::exception &e) {
+                printf("PSQLConnection::%s\n", e.what());
+            }
         }
     }
-    catch (const std::exception &e) {
-        printf("PSQLConnection::%s\n", e.what());
-        return false;
-    }
+
     string remove_tag_string = "DELETE FROM tags\n"
                                "WHERE NOT EXISTS(\n"
                                "SELECT tag\n"

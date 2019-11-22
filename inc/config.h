@@ -2,8 +2,8 @@
 // Created by yo on 2/22/19.
 //
 
-#ifndef ANITAGS_CONFIG_HPP
-#define ANITAGS_CONFIG_HPP
+#ifndef ANITAGS_CONFIG_H
+#define ANITAGS_CONFIG_H
 
 #include <string>
 #include <vector>
@@ -23,7 +23,9 @@ typedef struct config_struct {
     bool modifyExif;
     bool searchByTags;
     bool listTags;
+    bool exportTags;
+    bool importTags;
 
 } config;
 
-#endif //ANITAGS_CONFIG_HPP
+#endif //ANITAGS_CONFIG_H

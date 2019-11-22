@@ -1,6 +1,7 @@
 #include "../inc/error_codes.h"
 #include "../inc/config.h"
 #include "../inc/command_line.h"
+#include <cstring>
 
 using namespace std;
 
@@ -12,13 +13,25 @@ void processArgs(int argc, char* argv[], config* conf) {
             {"filter-tag", required_argument, 0, 'f'},
             {"exif", no_argument, 0, 'e'},
             {"help", no_argument, 0, 'h'},
-            {"list-tags", no_argument, 0, 'l'}
+            {"list-tags", no_argument, 0, 'l'},
+            {"import-tags", no_argument, 0, 0},
+            {"export-tags", no_argument, 0, 0}
     };
     int option_index = 0;
     conf->needsFile=true;
     while ((c = getopt_long(argc, argv, "t:r:f:ehl", options, &option_index)) != -1) {
         switch (c) {
             case 0:
+                if (strncmp(options[option_index].name, "export-tags", 12)==0) {
+                    conf->exportTags=true;
+                    conf->needsFile=false;
+                    conf->needsDir=true;
+                }
+                else if (strncmp(options[option_index].name, "import-tags", 12)==0) {
+                    conf->importTags=true;
+                    conf->needsFile=false;
+                    conf->needsDir=true;
+                }
                 break;
             case 't':
                 conf->tags_to_add.push_back(optarg);
@@ -51,45 +64,57 @@ void processArgs(int argc, char* argv[], config* conf) {
         }
     }
 
+    int actions = (conf->exportTags ? 1 : 0) + (conf->importTags ? 1 : 0) + (conf->modifyTags ? 1 : 0) +  (conf->searchByTags ? 1 : 0) + (conf->listTags ? 1 : 0);
+    if (actions>1) {
+        printf("Error: cannot use multiple actions combined\n");
+        printf("Try '%s -h' for more information\n", argv[0]);
+        exit(ERROR_INVALID_OPTION_COMBINATION);
+    }
+
+    //vector<string> suffixes = {".png", ".PNG", ".jpg", ".JPG", ".JPEG", ".jpeg"};
     if (conf->needsDir || conf->needsFile) {
         while (optind < argc) {
             char *path = realpath(argv[optind], NULL);
-            if (path) {
-                string str(path);
-                struct stat s;
-                if (stat(path, &s) == 0 ) {
-                    if (s.st_mode & S_IFDIR) {
-                        if (conf->needsDir) {
-                            conf->dirnames.push_back(str);
-                        }
-                        else {
-                            printf("Error: is not a file - %s\n", path);
-                            printf("Try '%s -h' for more information\n", argv[0]);
-                            exit(ERROR_FILE_DOES_NOT_EXIST);
-                        }
-                    } else if (s.st_mode & S_IFREG) {
-                        if (conf->needsFile) {
-                            conf->filenames.push_back(str);
-                        }
-                        else {
-                            printf("Error: is not a file - %s\n", path);
-                            printf("Try '%s -h' for more information\n", argv[0]);
-                            exit(ERROR_FILE_DOES_NOT_EXIST);
-                        }
-                    } else {
-                        printf("Error: is not a file/directory - %s\n", path);
-                        printf("Try '%s -h' for more information\n", argv[0]);
-                        exit(ERROR_FILE_DOES_NOT_EXIST);
-                    }
+            if (!path) {
+                printf("Error: file/directory not found - %s\n", argv[optind]);
+                printf("Try '%s -h' for more information\n", argv[0]);
+                exit(ERROR_FILE_DOES_NOT_EXIST);
+            }
+            string str(path);
+            struct stat s;
+            if (stat(path, &s) != 0 ) {
+                printf("Error: file/directory not found - %s\n", path);
+                printf("Try '%s -h' for more information\n", argv[0]);
+                exit(ERROR_FILE_DOES_NOT_EXIST);
+            }
+            if (s.st_mode & S_IFDIR) {
+                if (conf->needsDir) {
+                    conf->dirnames.push_back(str);
                 }
                 else {
-                    printf("Error: file/directory not found - %s\n", path);
+                    printf("Error: is not a file - %s\n", path);
+                    printf("Try '%s -h' for more information\n", argv[0]);
+                    exit(ERROR_FILE_DOES_NOT_EXIST);
+                }
+            }
+            else if (s.st_mode & S_IFREG) {
+                if (conf->needsFile) {
+                    /*int suffix_pos = str.find_last_of(".");
+                    if (suffix_pos!=string::npos) {
+                        if (find(suffixes.begin(), suffixes.end(), str.substr(suffix_pos))!=suffixes.end()) {
+                            conf->filenames.push_back(str);
+                        }
+                    }*/
+                    conf->filenames.push_back(str);
+                }
+                else {
+                    printf("Error: is not a directory - %s\n", path);
                     printf("Try '%s -h' for more information\n", argv[0]);
                     exit(ERROR_FILE_DOES_NOT_EXIST);
                 }
             }
             else {
-                printf("Error: file/directory not found - %s\n", argv[optind]);
+                printf("Error: is not a file/directory - %s\n", path);
                 printf("Try '%s -h' for more information\n", argv[0]);
                 exit(ERROR_FILE_DOES_NOT_EXIST);
             }
@@ -109,28 +134,28 @@ void processArgs(int argc, char* argv[], config* conf) {
         printf("Try '%s -h' for more information\n", argv[0]);
         exit(ERROR_FILE_REQUIRED);
     }
-    if ((conf->tags_to_search.size()) > 0 && conf->modifyTags) {
-        printf("Error: cannot use option '-s' combined with option '-t' or '-r'");
+    /*if ((conf->tags_to_search.size()) > 0 && conf->modifyTags) {
+        printf("Error: cannot use option --filter-tag combined with option --add-tag or --remove-tag");
         printf("Try '%s -h' for more information\n", argv[0]);
         exit(ERROR_INVALID_OPTION_COMBINATION);
     }
     if ((conf->needsFile || conf->needsDir) && conf->listTags) {
-        printf("Error: cannot use option '-t', '-r' or '-f' combined with option '-l'");
+        printf("Error: cannot use option --add-tag, --remove-tag or --filter-tag combined with option --list-tag");
         printf("Try '%s -h' for more information\n", argv[0]);
         exit(ERROR_INVALID_OPTION_COMBINATION);
     }
     if (conf->needsFile && conf->needsDir) {
-        printf("Error: cannot use option '-t' or '-r'combined with option '-f'");
+        printf("Error: cannot use option --add-tag or --remove--tag combined with option --filter-tag");
         printf("Try '%s -h' for more information\n", argv[0]);
         exit(ERROR_INVALID_OPTION_COMBINATION);
-    }
+    }*/
     sort(conf->tags_to_add.begin(), conf->tags_to_add.end());
     sort(conf->tags_to_remove.begin(), conf->tags_to_remove.end());
     sort(conf->tags_to_search.begin(), conf->tags_to_search.end());
 }
 
 void printUsage(int argc, char* argv[]) {
-    printf("Usage: %s [OPTIONS] [FILES]\n", argv[0]);
+    printf("Usage: %s [OPTIONS] [FILES | DIRECTORIES]\n", argv[0]);
     printf("\n");
     printf("    -h, --help                 Display this message\n");
     printf("\n");
@@ -142,6 +167,8 @@ void printUsage(int argc, char* argv[]) {
     printf("    -n TAGS                    Remove artist from image (requires file argument)\n");
     printf("    -c TAGS                    Add character to image (requires file argument)\n");
     printf("    -e TAGS                    Remove character from image (requires file argument)\n");*/
-    printf("    -l, --list-tags            List tags in DB.\n");
-    printf("    -f, --filter-tag TAG       Filter directories for images matching the tags (required directory argument\n");
+    printf("    -l, --list-tags            List tags in database.\n");
+    printf("    -f, --filter-tag TAG       Filter directories for images matching the tags (required directory argument)\n");
+    printf("    --import-tags              Import tags from metadata (requires directory argument)\n");
+    printf("    --export-tags              Export tags to metadata (requires directory argument)\n");
 }

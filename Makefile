@@ -5,7 +5,7 @@ INC = -I inc
 OBJEXIF = obj/ExifTool.o obj/ExifToolPipe.o obj/TagInfo.o
 OBJ = obj/command_line.o obj/psqlConnection.o
 HDREXIF = inc/ExifTool.h inc/ExifToolPipe.h inc/TagInfo.h
-HDR = inc/command_line.h inc/config.h inc/error_codes.h inc/psqlConnection.h
+HDR = inc/anitags.h inc/command_line.h inc/config.h inc/error_codes.h inc/psqlConnection.h
 
 all: anitags
 
