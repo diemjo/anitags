@@ -18,19 +18,19 @@ void processArgs(int argc, char* argv[], config* conf) {
             {"export-tags", no_argument, 0, 0}
     };
     int option_index = 0;
-    conf->needsFile=true;
+    conf->needsArg=true;
+    if (argc==1) {
+	printUsage(argc, argv);
+	exit(SUCCESS);
+    }
     while ((c = getopt_long(argc, argv, "t:r:f:ehl", options, &option_index)) != -1) {
         switch (c) {
             case 0:
                 if (strncmp(options[option_index].name, "export-tags", 12)==0) {
                     conf->exportTags=true;
-                    conf->needsFile=false;
-                    conf->needsDir=true;
                 }
                 else if (strncmp(options[option_index].name, "import-tags", 12)==0) {
                     conf->importTags=true;
-                    conf->needsFile=false;
-                    conf->needsDir=true;
                 }
                 break;
             case 't':
@@ -45,13 +45,13 @@ void processArgs(int argc, char* argv[], config* conf) {
                 conf->tags_to_search.push_back(optarg);
                 conf->searchByTags=true;
                 conf->needsDir=true;
-                conf->needsFile=false;
+                conf->needsArg=false;
                 break;
             case 'e':
                 conf->modifyExif=true;
                 break;
             case 'l':
-                conf->needsFile=false;
+                conf->needsArg=false;
                 conf->listTags=true;
                 break;
             case 'h':
@@ -71,8 +71,8 @@ void processArgs(int argc, char* argv[], config* conf) {
         exit(ERROR_INVALID_OPTION_COMBINATION);
     }
 
-    //vector<string> suffixes = {".png", ".PNG", ".jpg", ".JPG", ".JPEG", ".jpeg"};
-    if (conf->needsDir || conf->needsFile) {
+    vector<string> suffixes = {".png", ".PNG", ".jpg", ".JPG", ".JPEG", ".jpeg"};
+    if (conf->needsDir || conf->needsArg) {
         while (optind < argc) {
             char *path = realpath(argv[optind], NULL);
             if (!path) {
@@ -88,24 +88,17 @@ void processArgs(int argc, char* argv[], config* conf) {
                 exit(ERROR_FILE_DOES_NOT_EXIST);
             }
             if (s.st_mode & S_IFDIR) {
-                if (conf->needsDir) {
                     conf->dirnames.push_back(str);
-                }
-                else {
-                    printf("Error: is not a file - %s\n", path);
-                    printf("Try '%s -h' for more information\n", argv[0]);
-                    exit(ERROR_FILE_DOES_NOT_EXIST);
-                }
             }
             else if (s.st_mode & S_IFREG) {
-                if (conf->needsFile) {
-                    /*int suffix_pos = str.find_last_of(".");
+                if (conf->needsArg) {
+                    int suffix_pos = str.find_last_of(".");
                     if (suffix_pos!=string::npos) {
                         if (find(suffixes.begin(), suffixes.end(), str.substr(suffix_pos))!=suffixes.end()) {
                             conf->filenames.push_back(str);
                         }
-                    }*/
-                    conf->filenames.push_back(str);
+                    }
+                    //conf->filenames.push_back(str);
                 }
                 else {
                     printf("Error: is not a directory - %s\n", path);
@@ -124,13 +117,13 @@ void processArgs(int argc, char* argv[], config* conf) {
     }
 
 
-    if (conf->filenames.size()==0 && conf->needsFile) {
-        printf("Error: file required\n");
+    if (conf->dirnames.size()==0 && conf->needsDir) {
+        printf("Error: directory required\n");
         printf("Try '%s -h' for more information\n", argv[0]);
         exit(ERROR_FILE_REQUIRED);
     }
-    else if (conf->dirnames.size()==0 && conf->needsDir) {
-        printf("Error: directory required\n");
+    else if ((conf->filenames.size()==0 && conf->dirnames.size()==0) && conf->needsArg) {
+        printf("Error: argument required\n");
         printf("Try '%s -h' for more information\n", argv[0]);
         exit(ERROR_FILE_REQUIRED);
     }

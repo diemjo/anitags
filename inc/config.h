@@ -17,7 +17,7 @@ typedef struct config_struct {
     vector<string> tags_to_search;
     vector<string> filenames;
     vector<string> dirnames;
-    bool needsFile;
+    bool needsArg;
     bool needsDir;
     bool modifyTags;
     bool modifyExif;
