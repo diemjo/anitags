@@ -62,8 +62,8 @@ int main(int argc, char* argv[]) {
     }
 
     //Really slow, not really necessary
-    //delete et;
-    //free(conf);
+    delete et;
+    free(conf);
 
     return SUCCESS;
 }
