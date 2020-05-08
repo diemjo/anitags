@@ -22,6 +22,7 @@ typedef struct config_struct {
     bool modifyTags;
     bool modifyExif;
     bool searchByTags;
+    bool queryTags;
     bool listTags;
     bool exportTags;
     bool importTags;

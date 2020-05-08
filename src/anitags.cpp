@@ -5,13 +5,14 @@
 #include <filesystem>
 #include <string.h>
 #include <chrono>
+#include <iostream>
 
 #include "../inc/anitags.h"
 #include "../inc/ExifTool.h"
 #include "../inc/command_line.h"
 #include "../inc/error_codes.h"
 #include "../inc/psqlConnection.h"
-#include "../inc/config.h"
+#include "../inc/networkQuery.h"
 
 using namespace std;
 
@@ -56,6 +57,13 @@ int main(int argc, char* argv[]) {
     }
     else if (conf->exportTags) {
         export_tags(conf, et, argv[0]);
+    }
+    else if (conf->queryTags) {
+        initQueryTags();
+        for (string file : conf->filenames) {
+            if (!queryTags(file))
+                break;
+        }
     }
     else {
         print_tags(conf, et, argv[0]);

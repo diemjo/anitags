@@ -18,7 +18,7 @@ pqxx::connection* db_connect(string user, string address, int port) {
             return db_con;
         }
         else {
-            printf("Error: cannot connect to database anitags as %s@%s:%i\n", user.c_str(), address.c_str(), port);
+            fprintf(stderr, "Error: cannot connect to database anitags as %s@%s:%i\n", user.c_str(), address.c_str(), port);
             exit(ERROR_FILE_DOES_NOT_EXIST);
         }
     }
@@ -47,7 +47,7 @@ bool db_add_tags(config *conf) {
             w.commit();
         }
         catch (const std::exception &e) {
-            printf("PSQLConnection::%s\n", e.what());
+            fprintf(stderr, "Error: PSQLConnection: %s\n", e.what());
         }
     }
     for (string file : conf->filenames) {
@@ -59,7 +59,7 @@ bool db_add_tags(config *conf) {
                 w.commit();
             }
             catch (const std::exception &e) {
-                printf("PSQLConnection::%s\n", e.what());
+                fprintf(stderr, "Error: PSQLConnection: %s\n", e.what());
             }
         }
     }
@@ -82,7 +82,7 @@ bool db_remove_tags(config *conf) {
                 w.commit();
             }
             catch (const std::exception &e) {
-                printf("PSQLConnection::%s\n", e.what());
+                fprintf(stderr, "Error: PSQLConnection: %s\n", e.what());
             }
         }
     }
@@ -99,7 +99,7 @@ bool db_remove_tags(config *conf) {
         w.commit();
     }
     catch (const std::exception &e) {
-        printf("PSQLConnection::%s\n", e.what());
+        fprintf(stderr, "Error: PSQLConnection: %s\n", e.what());
         return false;
     }
     return true;
